@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>FuzeBox Telemetry</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23dc2626'/%3E%3Cpath d='M20 16h24v8H30v8h12v8H30v8h-10z' fill='white'/%3E%3C/svg%3E" />
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0a0b; color: #e8e8ea; font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif; height: 100%; }
+  .center { display: grid; place-items: center; height: 100vh; gap: 12px; text-align: center; padding: 0 20px; }
+  .mark { width: 56px; height: 56px; border-radius: 12px; background: #dc2626; display: grid; place-items: center; font-weight: 800; color: white; font-size: 22px; letter-spacing: -0.05em; font-family: ui-monospace, Menlo, monospace; }
+  .label { font-size: 13px; color: #9b9ba5; letter-spacing: 0.03em; }
+  .small { font-size: 11px; color: #65656f; font-family: ui-monospace, Menlo, monospace; }
+  a { color: #f87171; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="center">
+  <div class="mark">FB</div>
+  <div class="label">Loading FuzeBox Telemetry…</div>
+  <div class="small" id="fallback" style="display:none;">If you are not redirected, <a id="manual" href="#">open the dashboard</a>.</div>
+</div>
+<script>
+  // The FastAPI backend is served behind /__PORT_5000__/ on preview URLs.
+  // publish_website rewrites the sentinel during S3 upload; if not rewritten
+  // (preview mode), we substitute it client-side.
+  var raw = "/__PORT_5000__/app";
+  var target = raw.indexOf("__PORT_5000__") !== -1
+    ? raw.replace("__PORT_5000__", "port/5000")
+    : raw;
+  document.getElementById("manual").href = target;
+  document.getElementById("fallback").style.display = "block";
+  setTimeout(function () { window.location.replace(target); }, 50);
+</script>
+</body>
+</html>
