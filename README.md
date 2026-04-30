@@ -6,9 +6,9 @@ A vendor-agnostic, OpenTelemetry-compatible execution telemetry layer for AI age
 
 ## Quick Deploy to Render (free)
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/lesotto/fuzebox-telemetry)
 
-Click the button → connect this GitHub repo → Render auto-detects `render.yaml` and deploys. Public URL is ready in ~3 minutes.
+Click the button → sign in to Render (GitHub login works) → it auto-detects `render.yaml` and deploys. Public URL is ready in ~3 minutes.
 
 ## Run Locally
 
