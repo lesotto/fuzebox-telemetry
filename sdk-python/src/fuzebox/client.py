@@ -84,6 +84,14 @@ def init(
             },
         )
         log.info("fuzebox.init", tenant=new_cfg.tenant, endpoint=new_cfg.endpoint)
+    # LiteLLM monkeypatch is installed outside the lock — it imports lazily and
+    # must not deadlock with re-entrant init() calls in test fixtures.
+    try:
+        from . import litellm_wrapper
+
+        litellm_wrapper.install()
+    except Exception as exc:  # never raise from init
+        log.warning("fuzebox.litellm.install.error", error=str(exc))
 
 
 def shutdown() -> None:

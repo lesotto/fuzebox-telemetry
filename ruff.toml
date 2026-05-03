@@ -3,6 +3,9 @@ target-version = "py311"
 
 [lint]
 select = ["E", "F", "I", "B", "UP", "N"]
+# N818: webhook adapter exceptions read more clearly without an `Error` suffix
+# (they're domain-specific signals, not generic errors).
+ignore = ["N818"]
 
 [lint.per-file-ignores]
 # verify.py is the customer-facing 30-line offline verifier. Compactness is part

@@ -18,7 +18,7 @@ from typing import Any
 
 import structlog
 
-from . import client
+from . import client, litellm_wrapper
 
 log = structlog.get_logger("fuzebox")
 
@@ -136,9 +136,15 @@ def open_pel_row(
         trust_level=int(opened.get("trust_level", 0)),
     )
 
+    token = litellm_wrapper.set_active_row(row)  # noqa: F841
     try:
         yield row
     finally:
+        # Add LiteLLM-recorded cost into the row payload if any.
+        litellm_cost = getattr(row, "_litellm_cost", None)
+        if litellm_cost is not None:
+            row.add_meta(litellm_cost_usd=str(litellm_cost))
+        litellm_wrapper.set_active_row(None)
         try:
             client.close_row(row.row_id, row._close_payload())
         except Exception as exc:  # ultimate safety net

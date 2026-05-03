@@ -4,7 +4,39 @@ All notable changes to FuzeBox AEOS Telemetry Engine.
 
 ## [Unreleased]
 
-### Sprint 1 — Trust Foundations (in review)
+### Sprint 2 — Cosign + Stripe + Salesforce + PII
+
+**Goal:** SDK opens a row tagged with `stripe_payment_intent_id`. A Stripe
+webhook arrives. Row bumps T1 → T3. `lift_usd` populates. PII is redacted at ingest.
+
+#### Added
+
+- `services/cosigner_api/app/adapters/` — `CosignAdapter` ABC + `StripeAdapter`
+  (HMAC-SHA256 with replay-window enforcement) + `SalesforceAdapter`
+  (HMAC-SHA256 base64).
+- `services/cosigner_api/app/ledger/cosign.py` — full state machine: idempotent
+  on `(adapter, event_id)`, matches by `meta` JSONB, bumps trust to T3,
+  re-links + re-signs the row, and appends a chained signed entry to
+  `cosign_event_log`.
+- `services/cosigner_api/app/routes/webhooks.py` — `POST /v1/webhooks/cosign/{adapter}`.
+- `services/cosigner_api/app/pii/` — Presidio-aware PII redactor with regex fallback
+  (credit card, SSN, email, phone). Idempotent.
+- `sdk-python/src/fuzebox/litellm_wrapper.py` — auto-instrumentation of
+  `litellm.completion` / `acompletion`. Cost is accumulated on the active row
+  via a `ContextVar`; lands in `meta.litellm_cost_usd` on close.
+- Tests: `test_adapters.py` (Stripe + Salesforce sign/verify/parse,
+  replay rejection), `test_pii.py`, `test_webhook_routes.py`,
+  `test_litellm_wrapper.py`, `test_cosign_postgres.py` (Postgres-gated:
+  match → T3 → lift, idempotency, audit-log chain links, lift threshold).
+
+#### Demo
+
+`python scripts/sprint2_demo.py` — verifies a Stripe-signed payload, parses
+`pi_demo_42`, computes lift = $10 against a $40 counterfactual at 0.85
+confidence, redacts a credit card / SSN / email from a customer note, and
+rejects a replayed event.
+
+### Sprint 1 — Trust Foundations (merged)
 
 **Goal:** SDK opens a row in a local Postgres. Row is HMAC-signed. `verify.py`
 confirms a 100-row chain offline in under 5 seconds.

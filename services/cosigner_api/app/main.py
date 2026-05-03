@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from . import __version__
 from .db import reset_engine
 from .routes import pel as pel_routes
+from .routes import webhooks as webhooks_routes
 
 
 def _configure_logging() -> None:
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.include_router(pel_routes.router)
+    app.include_router(webhooks_routes.router)
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict[str, str]:
