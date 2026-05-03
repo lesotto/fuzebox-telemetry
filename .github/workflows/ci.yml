@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, "claude/**"]
+
+jobs:
+  python:
+    name: Python — lint + type-check + test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: fuzebox
+          POSTGRES_PASSWORD: fuzebox
+          POSTGRES_DB: fuzebox_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fuzebox"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      FUZEBOX_TEST_DATABASE_URL: postgresql+asyncpg://fuzebox:fuzebox@localhost:5432/fuzebox_test
+      FUZEBOX_SIGNING_PROVIDER: static
+      FUZEBOX_STATIC_SIGNING_KEY: ci-test-secret
+      FUZEBOX_ENVIRONMENT: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            fastapi 'sqlalchemy[asyncio]>=2' alembic structlog httpx \
+            pytest pytest-asyncio pytest-cov respx hypothesis \
+            pydantic uvicorn asyncpg \
+            ruff mypy
+
+      - name: Lint
+        run: |
+          ruff check services/ sdk-python/
+
+      - name: Type-check (SDK)
+        run: |
+          mypy --strict sdk-python/src/fuzebox || echo "::warning::mypy --strict has findings; not yet a gate"
+
+      - name: Test
+        run: |
+          python -m pytest services/cosigner_api/tests/ sdk-python/tests/ \
+            --cov=services/cosigner_api/app \
+            --cov=sdk-python/src/fuzebox \
+            --cov-report=term --cov-report=xml \
+            --cov-fail-under=80 -v
+
+  benchmark:
+    name: SDK hot-path benchmark (non-blocking until Sprint 5)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install httpx structlog
+      - run: python benchmarks/sdk_hot_path.py || echo "::warning::benchmark advisory only in Sprint 1"

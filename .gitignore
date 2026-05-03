@@ -10,3 +10,12 @@ data.db
 .idea/
 .vscode/
 dist/.keep
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.bench-buffer.db
+node_modules/

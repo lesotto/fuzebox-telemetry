@@ -1,0 +1,15 @@
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+
+[lint.per-file-ignores]
+# verify.py is the customer-facing 30-line offline verifier. Compactness is part
+# of the contract — auditors should be able to read it in one screen.
+"services/verify_cli/verify.py" = ["E501", "E701", "E702"]
+# scripts/benchmarks must `sys.path.insert` before importing in-repo packages.
+"scripts/*.py" = ["E402"]
+"benchmarks/*.py" = ["E402"]
+# FastAPI idiom: `Depends(...)` in argument defaults.
+"services/cosigner_api/app/routes/*.py" = ["B008"]
