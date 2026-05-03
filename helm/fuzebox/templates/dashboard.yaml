@@ -1,0 +1,39 @@
+{{- if .Values.dashboard.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  labels: {{- include "fuzebox.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.dashboard.replicas }}
+  selector:
+    matchLabels:
+      app: dashboard
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: dashboard
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: dashboard
+          image: "{{ .Values.dashboard.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
+          ports: [{ containerPort: {{ .Values.dashboard.service.port }} }]
+          env:
+            - name: COSIGNER_URL
+              value: "http://{{ .Release.Name }}-cosigner-api:{{ .Values.cosignerApi.service.port }}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-dashboard
+spec:
+  selector:
+    app: dashboard
+    release: {{ .Release.Name }}
+  ports:
+    - port: {{ .Values.dashboard.service.port }}
+      targetPort: {{ .Values.dashboard.service.port }}
+{{- end }}

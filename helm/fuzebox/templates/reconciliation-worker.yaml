@@ -1,0 +1,24 @@
+{{- if .Values.reconciliationWorker.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-reconciliation-worker
+  labels: {{- include "fuzebox.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.reconciliationWorker.replicas }}
+  selector:
+    matchLabels: { app: reconciliation-worker, release: {{ .Release.Name }} }
+  template:
+    metadata:
+      labels: { app: reconciliation-worker, release: {{ .Release.Name }} }
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.reconciliationWorker.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.reconciliationWorker.image.pullPolicy }}
+          env:
+            - name: FUZEBOX_DATABASE_URL
+              value: {{ include "fuzebox.databaseUrl" . | quote }}
+            - name: REDIS_URL
+              value: redis://{{ .Release.Name }}-redis:6379/0
+{{- end }}

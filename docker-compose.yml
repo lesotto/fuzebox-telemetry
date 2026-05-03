@@ -1,0 +1,39 @@
+version: "3.9"
+
+# Sprint 1 local-dev stack: just Postgres + the Cosigner API.
+# Redis, OTEL collector, Presidio, and the dashboard land in later sprints.
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER: fuzebox
+      POSTGRES_PASSWORD: fuzebox
+      POSTGRES_DB: fuzebox
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fuzebox"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cosigner_api:
+    build:
+      context: .
+      dockerfile: services/cosigner_api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FUZEBOX_DATABASE_URL: postgresql+asyncpg://fuzebox:fuzebox@postgres:5432/fuzebox
+      FUZEBOX_SIGNING_PROVIDER: static
+      FUZEBOX_STATIC_SIGNING_KEY: dev-static-signing-key
+      FUZEBOX_ENVIRONMENT: dev
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

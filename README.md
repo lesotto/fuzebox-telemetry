@@ -1,78 +1,94 @@
-# FuzeBox Telemetry & Execution Intelligence — v1
+# FuzeBox AEOS Telemetry Engine
 
-> **LiteLLM measures the model call. FuzeBox measures the work.**
+A signed, hash-chained economic ledger of every AI agent execution, mined into a
+process map and shipped as a Helm chart that deploys into the customer's own
+Kubernetes cluster.
 
-A vendor-agnostic, OpenTelemetry-compatible execution telemetry layer for AI agents. Records outcomes, coordination tax, skill efficiency, and unified executor scoring across humans, agents, and hybrids.
+> **Status: Sprint 1 — Trust Foundations.** SDK opens a row, server signs and
+> chains it, `verify.py` validates the chain offline. See
+> [`CHANGELOG.md`](./CHANGELOG.md) for details.
 
-## Quick Deploy to Render (free)
+The legacy single-process v1 telemetry app is preserved at `app/`,
+[`README.legacy.md`](./README.legacy.md), and `render.yaml` for reference.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/lesotto/fuzebox-telemetry)
+---
 
-Click the button → sign in to Render (GitHub login works) → it auto-detects `render.yaml` and deploys. Public URL is ready in ~3 minutes.
-
-## Run Locally
-
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 5000
-```
-
-Then open http://localhost:5000.
-
-## Surface
-
-| Path | What |
-|---|---|
-| `/` | Executive dashboard (KPIs, skills, models, executors, coord-tax heatmap, ledger) |
-| `/docs` | Full Swagger UI for the v1 API |
-| `/health` | Liveness check |
-| `/v1/executions/start` | Begin tracking an execution |
-| `/v1/executions/{id}/model-call` | Record a model invocation |
-| `/v1/executions/{id}/tool-call` | Record a tool/function call |
-| `/v1/executions/{id}/skill` | Record a skill invocation (executor: agent/human/hybrid) |
-| `/v1/executions/{id}/human-step` | Record a human-in-the-loop step |
-| `/v1/executions/{id}/outcome` | Record success + business value + risk |
-| `/v1/executions/{id}/end` | Close out the execution |
-| `/v1/executions/{id}` | Read full execution record |
-| `/v1/uef/decide` | Unified Executor Framework — score paths and pick |
-| `/v1/dashboard/{summary,skills,models,executors,coordination-tax,executions}` | JSON aggregates |
-| `/v1/dev/seed?count=60` | Generate synthetic data for demo |
-| `/v1/dev/reset` | Wipe all telemetry |
-
-## Try It
+## Quickstart (local dev)
 
 ```bash
-BASE=https://<your-render-url>
+# 1. Bring up Postgres + the cosigner API
+docker compose up -d postgres
+export FUZEBOX_DATABASE_URL='postgresql+asyncpg://fuzebox:fuzebox@localhost:5432/fuzebox'
+export FUZEBOX_SIGNING_PROVIDER=static
+export FUZEBOX_STATIC_SIGNING_KEY=dev-static-signing-key
 
-# Seed sample data
-curl -X POST $BASE/v1/dev/seed
+# 2. Run migrations
+python -m alembic -c services/cosigner_api/alembic.ini upgrade head
 
-# Inspect what got recorded
-curl $BASE/v1/dashboard/summary | jq
+# 3. Start the API
+uvicorn services.cosigner_api.app.main:app --reload --port 8080
 
-# Record a real lifecycle
-curl -X POST $BASE/v1/executions/start -H 'Content-Type: application/json' \
-  -d '{"execution_id":"test1","skill_id":"brake_diagnosis","agent_id":"a1"}'
-
-curl -X POST $BASE/v1/executions/test1/model-call -H 'Content-Type: application/json' \
-  -d '{"model_provider":"openai","model_name":"gpt-4o-mini","prompt_tokens":120,"completion_tokens":40,"total_tokens":160,"cost_usd":0.0009,"latency_ms":420,"success":true}'
-
-curl -X POST $BASE/v1/executions/test1/skill -H 'Content-Type: application/json' \
-  -d '{"skill_id":"brake_diagnosis","executor":"hybrid","invocation_count":1,"success":true,"latency_ms":2000}'
-
-curl -X POST $BASE/v1/executions/test1/outcome -H 'Content-Type: application/json' \
-  -d '{"success":true,"outcome_value":48.5,"risk_score":0.05}'
-
-curl -X POST $BASE/v1/executions/test1/end
-curl $BASE/v1/executions/test1 | jq
+# 4. From another shell, exercise the SDK
+python - <<'PY'
+import fuzebox
+fuzebox.init(api_key="local", tenant="acme", endpoint="http://localhost:8080")
+with fuzebox.open_pel_row(skill="claims_triage",
+                          meta={"stripe_payment_intent_id": "pi_test"}) as row:
+    row.set_predicted_outcome_usd(50)
+    print("row_id:", row.row_id, "status:", row.status)
+PY
 ```
 
-## Architecture
+## Public SDK contract
 
-- **FastAPI** — single-process, async, OpenAPI-generated docs at `/docs`
-- **SQLite** — zero-ops storage, persisted on Render's free disk at `/var/data/data.db`
-- **Jinja2** — server-rendered dashboard, no JS framework dependency
-- **Pure Python** — no external service requirements, no LLM calls at runtime, OTel-compatible
+```python
+import fuzebox
+
+fuzebox.init(api_key="...", tenant="acme", endpoint="https://fuzebox.acme.com")
+
+with fuzebox.open_pel_row(
+    skill="claims_triage",
+    meta={"stripe_payment_intent_id": pi_id},
+) as row:
+    result = my_agent.run(claim)
+    row.set_predicted_outcome_usd(result.estimated_savings)
+```
+
+The SDK never blocks the agent. If the cosigner is unreachable, rows go to a
+local SQLite buffer and are reconciled later — the row stays tagged
+`unledgered` until the cosigner confirms it.
+
+## Repo layout
+
+```
+sdk-python/                Python SDK
+sdk-typescript/            TS SDK (Sprint 4)
+services/
+  cosigner_api/            FastAPI signing + ledger service
+  miner/                   PM4Py-backed process miner (Sprint 3)
+  reconciliation_worker/   Celery flusher (Sprint 5)
+  verify_cli/verify.py     30-line offline auditor verifier
+dashboard/                 Next.js (Sprint 4)
+helm/fuzebox/              Helm chart (Sprint 4)
+terraform/                 EKS module (Sprint 4)
+benchmarks/                CI perf gates (Sprint 5 blocking)
+docs/adr/                  Architecture decision records
+```
+
+## Tests
+
+```bash
+pytest services/cosigner_api/tests/ sdk-python/tests/ \
+  --cov=services/cosigner_api/app --cov=sdk-python/src/fuzebox \
+  --cov-report=term --cov-fail-under=80
+```
+
+Postgres integration tests skip unless `FUZEBOX_TEST_DATABASE_URL` is set.
+
+## Sprint plan
+
+See [`CHANGELOG.md`](./CHANGELOG.md). Each sprint ends with a runnable demo and
+an open PR for review.
 
 ## License
 

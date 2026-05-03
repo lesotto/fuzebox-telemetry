@@ -1,0 +1,61 @@
+{{- if .Values.cosignerApi.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-cosigner-api
+  labels: {{- include "fuzebox.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.cosignerApi.replicas }}
+  selector:
+    matchLabels:
+      app: cosigner-api
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: cosigner-api
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: cosigner-api
+          image: "{{ .Values.cosignerApi.image.repository }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: {{ .Values.cosignerApi.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.cosignerApi.service.port }}
+          env:
+            - name: FUZEBOX_DATABASE_URL
+              value: {{ include "fuzebox.databaseUrl" . | quote }}
+            - name: FUZEBOX_SIGNING_PROVIDER
+              value: {{ .Values.cosignerApi.signing.provider | quote }}
+            {{- if eq .Values.cosignerApi.signing.provider "kms" }}
+            - name: FUZEBOX_KMS_KEY_ID
+              value: {{ .Values.cosignerApi.signing.kmsKeyId | quote }}
+            - name: FUZEBOX_KMS_REGION
+              value: {{ .Values.cosignerApi.signing.kmsRegion | quote }}
+            {{- end }}
+            - name: FUZEBOX_DEFAULT_TENANT
+              value: {{ .Values.global.tenant | quote }}
+            - name: FUZEBOX_ENVIRONMENT
+              value: prod
+          readinessProbe:
+            httpGet: { path: /health, port: {{ .Values.cosignerApi.service.port }} }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: {{ .Values.cosignerApi.service.port }} }
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources: {{- toYaml .Values.cosignerApi.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-cosigner-api
+spec:
+  selector:
+    app: cosigner-api
+    release: {{ .Release.Name }}
+  ports:
+    - port: {{ .Values.cosignerApi.service.port }}
+      targetPort: {{ .Values.cosignerApi.service.port }}
+{{- end }}
