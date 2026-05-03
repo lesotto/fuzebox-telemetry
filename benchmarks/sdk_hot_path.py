@@ -19,7 +19,8 @@ import fuzebox  # noqa: E402
 from fuzebox import client as sdk_client  # noqa: E402
 
 
-def run(n: int = 1000) -> None:
+def run(n: int = 1000, *, p99_budget_ms: float = 5.0) -> int:
+    """Run the benchmark. Return non-zero exit code if p99 exceeds the budget."""
     fuzebox.init(
         api_key="bench",
         tenant="bench",
@@ -57,8 +58,12 @@ def run(n: int = 1000) -> None:
     p50 = statistics.median(samples)
     p95 = samples[int(len(samples) * 0.95)]
     p99 = samples[int(len(samples) * 0.99)]
-    print(f"open_pel_row n={n} p50={p50:.3f}ms p95={p95:.3f}ms p99={p99:.3f}ms")
+    print(
+        f"open_pel_row n={n} p50={p50:.3f}ms p95={p95:.3f}ms p99={p99:.3f}ms "
+        f"(budget p99 < {p99_budget_ms}ms)"
+    )
+    return 0 if p99 < p99_budget_ms else 1
 
 
 if __name__ == "__main__":
-    run(1000)
+    sys.exit(run(1000))

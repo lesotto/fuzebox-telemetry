@@ -76,9 +76,8 @@ jobs:
           node --test dist/tests/*.test.js
 
   benchmark:
-    name: SDK hot-path benchmark (non-blocking until Sprint 5)
+    name: SDK hot-path benchmark gate (Sprint 5 — blocking)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -87,4 +86,4 @@ jobs:
       - run: |
           python -m pip install --upgrade pip
           pip install httpx structlog
-      - run: python benchmarks/sdk_hot_path.py || echo "::warning::benchmark advisory only in Sprint 1"
+      - run: python benchmarks/sdk_hot_path.py

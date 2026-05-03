@@ -4,6 +4,31 @@ All notable changes to FuzeBox AEOS Telemetry Engine.
 
 ## [Unreleased]
 
+### Sprint 5 — Hardening + Pilot Readiness
+
+**Goal:** Audit export bundle round-trips through `verify.py`. SDK hot-path
+benchmark is a CI gate. Threat model documented. Replay CLI ships.
+
+#### Added
+
+- `services/cosigner_api/app/audit_export.py` — `build_bundle(rows, signer, tenant)`
+  emits a zip containing `bundle.json`, `verify.py`, and a `README.md`.
+- `services/verify_cli/replay.py` — `fuzebox replay --case-id <id>` CLI that
+  reads spans for a case and renders the agent's path.
+- `services/reconciliation_worker/tasks.py` — Celery app + `drain_buffered`
+  pure function (testable without Redis). The Celery task wraps it for prod.
+- `docs/threat_model.md` — STRIDE walk over the trust boundaries.
+- Benchmark gate is now blocking in CI: `python benchmarks/sdk_hot_path.py`
+  exits non-zero if SDK p99 > 5 ms.
+- 9 new tests: audit-export round trip (bundle → unzip → verify.py → exit 0),
+  reconciliation drain (success / failure / scaling / empty), replay CLI render.
+
+#### Demo
+
+`python scripts/sprint5_demo.py` — produces a 100-row audit zip in `/tmp`,
+extracts it, runs the bundled `verify.py`, and drains 7 buffered SDK rows.
+Result: PASS. Benchmark p99 = 0.116 ms.
+
 ### Sprint 4 — TS SDK + Dashboard + Helm + Terraform
 
 **Goal:** Helm chart deploys all components into a fresh kind cluster; TS SDK
