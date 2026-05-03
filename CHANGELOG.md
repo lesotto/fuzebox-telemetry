@@ -4,6 +4,34 @@ All notable changes to FuzeBox AEOS Telemetry Engine.
 
 ## [Unreleased]
 
+### Sprint 3 — Miner + Counterfactual + Twin Maturity
+
+**Goal:** Mine 500 synthetic claims-triage cases, recover 3 planted variants,
+counterfactual returns confidence-rated lifts, Twin Maturity Score lands in
+the 40–60 band on a thin pilot.
+
+#### Added
+
+- `services/miner/app/miner.py` — variant + transition discovery. PM4Py
+  Inductive Miner integration when installed; deterministic fallback otherwise.
+  Subsamples to 25% above an event-count threshold and tags the artifact.
+- `services/miner/app/counterfactual.py` — four-tier simulator
+  (holdout / process-twin replay / variant average / synthetic). Confidence
+  threshold of 0.30 enforced; below that, no `lift_usd`.
+- `services/miner/app/maturity.py` — Twin Maturity Score with the 5-component
+  weighted formula and JS-divergence variant-stability metric.
+- `services/miner/app/prioritizer.py` — hourly/daily/weekly tier assignment
+  by `volume × economic_exposure`.
+- 21 new tests covering all four counterfactual tiers, variant recovery,
+  transition stats, perf (<1s on 500 cases), maturity scoring + bands,
+  prioritizer tier assignment.
+
+#### Demo
+
+`python scripts/sprint3_demo.py` — mines 500 cases in ~1.5 ms, recovers all 3
+planted variants, runs counterfactuals across the population, computes Twin
+Maturity Score 91 (production-ready band).
+
 ### Sprint 2 — Cosign + Stripe + Salesforce + PII
 
 **Goal:** SDK opens a row tagged with `stripe_payment_intent_id`. A Stripe
