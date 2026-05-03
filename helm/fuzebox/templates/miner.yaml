@@ -1,0 +1,26 @@
+{{- if .Values.miner.enabled -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-miner
+  labels: {{- include "fuzebox.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.miner.schedule | quote }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: miner
+              image: "{{ .Values.miner.image.repository }}:{{ .Values.global.imageTag }}"
+              imagePullPolicy: {{ .Values.miner.image.pullPolicy }}
+              env:
+                - name: FUZEBOX_DATABASE_URL
+                  value: {{ include "fuzebox.databaseUrl" . | quote }}
+                - name: FUZEBOX_DEFAULT_TENANT
+                  value: {{ .Values.global.tenant | quote }}
+              resources: {{- toYaml .Values.miner.resources | nindent 16 }}
+{{- end }}

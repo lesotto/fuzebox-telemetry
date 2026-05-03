@@ -1,0 +1,73 @@
+# Default values for FuzeBox AEOS.
+# Customer overrides go in their own values.yaml.
+
+global:
+  tenant: "acme"
+  imageTag: "0.1.0"
+  storageClass: ""
+
+cosignerApi:
+  enabled: true
+  replicas: 2
+  image:
+    repository: ghcr.io/fuzebox/cosigner-api
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 200m, memory: 256Mi }
+    limits: { cpu: 1, memory: 1Gi }
+  service:
+    port: 8080
+  signing:
+    provider: kms      # static | kms | vault
+    kmsKeyId: ""       # required when provider=kms
+    kmsRegion: us-east-1
+
+miner:
+  enabled: true
+  schedule: "*/15 * * * *"   # every 15 minutes; prioritizer self-tiers underneath
+  image:
+    repository: ghcr.io/fuzebox/miner
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 500m, memory: 512Mi }
+    limits: { cpu: 2, memory: 4Gi }
+
+reconciliationWorker:
+  enabled: true
+  replicas: 1
+  image:
+    repository: ghcr.io/fuzebox/reconciliation-worker
+    pullPolicy: IfNotPresent
+
+dashboard:
+  enabled: true
+  replicas: 1
+  image:
+    repository: ghcr.io/fuzebox/dashboard
+    pullPolicy: IfNotPresent
+  service:
+    port: 3000
+
+postgres:
+  enabled: true
+  image: timescale/timescaledb:latest-pg15
+  size: 50Gi
+  password: change-me
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+
+otelCollector:
+  enabled: true
+  image: otel/opentelemetry-collector-contrib:latest
+
+presidio:
+  enabled: false                # opt-in: heavyweight, requires customer ack
+  image: mcr.microsoft.com/presidio-analyzer:latest
+
+prometheus:
+  enabled: true
+
+grafana:
+  enabled: true

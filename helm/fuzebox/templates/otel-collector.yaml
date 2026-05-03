@@ -1,0 +1,31 @@
+{{- if .Values.otelCollector.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-otel-collector
+  labels: {{- include "fuzebox.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: otel-collector, release: {{ .Release.Name }} }
+  template:
+    metadata:
+      labels: { app: otel-collector, release: {{ .Release.Name }} }
+    spec:
+      containers:
+        - name: otel
+          image: {{ .Values.otelCollector.image }}
+          ports:
+            - { containerPort: 4317 }   # gRPC
+            - { containerPort: 4318 }   # HTTP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-otel-collector
+spec:
+  selector: { app: otel-collector, release: {{ .Release.Name }} }
+  ports:
+    - { name: grpc, port: 4317 }
+    - { name: http, port: 4318 }
+{{- end }}

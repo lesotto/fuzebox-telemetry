@@ -4,6 +4,28 @@ All notable changes to FuzeBox AEOS Telemetry Engine.
 
 ## [Unreleased]
 
+### Sprint 4 — TS SDK + Dashboard + Helm + Terraform
+
+**Goal:** Helm chart deploys all components into a fresh kind cluster; TS SDK
+mirrors the Python public surface; Next.js dashboard scaffolded with all 6
+views; Terraform module provisions KMS + IRSA on AWS.
+
+#### Added
+
+- `sdk-typescript/` — TS SDK with `fuzebox.init` + `openPelRow` mirroring the
+  Python contract. Idempotent init, fail-open semantics, AbortController
+  timeout. 3 node:test tests pass (typecheck + happy path + fail-open).
+- `dashboard/` — Next.js 14 app router scaffold with all six views
+  (overview, agents, skills, anomalies, trust, infra) and the cosigner-URL
+  env wiring.
+- `helm/fuzebox/` — umbrella chart: cosigner-api Deployment+Service,
+  Postgres StatefulSet (TimescaleDB image), miner CronJob, reconciliation
+  worker Deployment, dashboard Deployment+Service, Redis, OTel collector.
+  All gated by `*.enabled` flags.
+- `terraform/modules/aws-eks/main.tf` — reference module: ECC-P256 KMS key
+  for signing, IRSA role for the cosigner service account, OIDC binding.
+- CI: new `typescript` job runs `tsc` + `node --test`.
+
 ### Sprint 3 — Miner + Counterfactual + Twin Maturity
 
 **Goal:** Mine 500 synthetic claims-triage cases, recover 3 planted variants,
