@@ -21,7 +21,7 @@ from typing import Any, Dict, List
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import case, desc, func
@@ -601,3 +601,18 @@ def home(request: Request, db: Session = Depends(get_db)) -> HTMLResponse:
 @app.get("/api")
 def api_redirect():
     return RedirectResponse("/docs")
+
+
+# =========================================================================== #
+# AEGIS Living — AI Transformation Assessment (Layer 1: Executive Discovery)   #
+# Self-contained, no-framework single-page app served as a static file.       #
+# =========================================================================== #
+AEGIS_INDEX = ROOT / "aegis" / "index.html"
+
+
+@app.get("/aegis", response_class=HTMLResponse)
+@app.get("/aegis/", response_class=HTMLResponse)
+@app.get("/assessment", response_class=HTMLResponse)
+def aegis_assessment() -> FileResponse:
+    """Serve the AEGIS Living AI Transformation Assessment platform."""
+    return FileResponse(str(AEGIS_INDEX), media_type="text/html")

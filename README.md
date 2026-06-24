@@ -1,5 +1,11 @@
 # FuzeBox Telemetry & Execution Intelligence — v1
 
+> ### 🟢 New: [AEGIS Living AI Transformation Assessment](aegis/README.md) — live at `/aegis`
+> A single-file, no-framework executive diagnostic that locates wasted labor,
+> leaking margin, and measurable AI ROI in 12–15 minutes, then routes into the
+> consulting funnel. Open `aegis/index.html` directly, or run the host and visit
+> `/aegis`. Engineer hand-off guide: [`aegis/HANDOFF.md`](aegis/HANDOFF.md).
+
 > **LiteLLM measures the model call. FuzeBox measures the work.**
 
 A vendor-agnostic, OpenTelemetry-compatible execution telemetry layer for AI agents. Records outcomes, coordination tax, skill efficiency, and unified executor scoring across humans, agents, and hybrids.
